@@ -29,13 +29,27 @@ def _(np, torch):
 
 @app.cell
 def _(plt, spiralData):
-    spiral_data = spiralData()
+    data = spiralData().numpy()
 
-    spiral_data_np = spiral_data.numpy()
-
-    plt.scatter(spiral_data_np[:, 0], spiral_data_np[:, 1], s=10)
+    plt.scatter(data[:, 0], data[:, 1], s=10)
     plt.axis('equal')
     plt.show()
+    return
+
+
+@app.cell
+def _(np, torch):
+    def sdeStep(xCurr, beta, dt):
+        drift = -0.5 * beta * xCurr
+    
+        diffusion = np.sqrt(beta)
+    
+        r = torch.randn_like(xCurr)
+        dW = r * np.sqrt(dt)
+    
+        xNext = xCurr + (drift * dt) + (diffusion * dW)
+    
+        return xNext
     return
 
 
