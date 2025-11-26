@@ -14,7 +14,7 @@ def _():
     import matplotlib.pyplot as plt
     import time
     import matplotlib.animation as animation
-    return mo, np, plt, torch
+    return mo, nn, np, optim, plt, torch
 
 
 @app.cell
@@ -103,11 +103,95 @@ def _(plt, trajectory):
 @app.cell
 def _(mo, showFrame, timeSlider):
     mo.vstack([
-        mo.md("### SDE Time Evolution"),
+        mo.md("# SDE Time Evolution"),
         mo.md("Drag the slider to watch the **Forward Diffusion Process** (Equation 1)."),
         timeSlider,
         showFrame(timeSlider.value)
     ])
+    return
+
+
+@app.cell
+def _(torch):
+    def getMarginalParams(t):
+        beta = 1.0
+
+        # X_t = alpha * X_0 + sigma * noise
+        logMeanCoeff = -0.5 * beta * t
+        alpha = torch.exp(logMeanCoeff)
+        sigma = torch.sqrt(1 - torch.exp(2 * logMeanCoeff))
+
+        return alpha.view(-1, 1), sigma.view(-1, 1)
+    return (getMarginalParams,)
+
+
+@app.cell
+def _(nn, torch):
+    class ScoreNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            # Input: (x,y,t)
+            self.net = nn.Sequential(
+                nn.Linear(3, 64),
+                nn.Tanh(),
+                nn.Linear(64, 64),
+                nn.Tanh(),
+                nn.Linear(64, 2) # Output: Estimated Noise Direction
+            )
+
+        def forward(self, x, t):
+            inputData = torch.cat([x, t], dim=1)
+            return self.net(inputData)
+    return (ScoreNet,)
+
+
+@app.cell
+def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
+    def trainAndShow(dataPoints, epochs):
+        model = ScoreNet()
+        optimizer = optim.Adam(model.parameters(), lr=0.01)
+        dataset = torch.utils.data.TensorDataset(dataPoints)
+        loader = torch.utils.data.DataLoader(dataset, batch_size=256, shuffle=True)
+
+        lossHistory = []
+
+        # We use a progress bar for extra feedback
+        for epoch in mo.status.progress_bar(range(epochs), title="Training AI..."):
+            epochLoss = 0
+            for (xBatch,) in loader:
+                optimizer.zero_grad()
+                t = torch.rand(xBatch.shape[0], 1)
+                alpha, sigma = getMarginalParams(t)
+                noise = torch.randn_like(xBatch)
+                xNoisy = alpha * xBatch + sigma * noise
+                predictedNoise = model(xNoisy, t)
+                loss = torch.mean((predictedNoise - noise)**2)
+                loss.backward()
+                optimizer.step()
+                epochLoss += loss.item()
+ 
+            lossHistory.append(epochLoss / len(loader))
+
+            # every 50 epochs update the loss graph
+            if epoch % 50 == 0:
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.plot(lossHistory, color='red', linewidth=2)
+                ax.set_title(f"Live Training: Epoch {epoch}/{epochs}")
+                ax.set_xlabel("Epochs")
+                ax.set_ylabel("Loss (MSE)")
+                ax.grid(True, alpha=0.3)
+
+                mo.output.replace(fig)
+
+        return model, lossHistory
+
+
+    cleanData = spiralData(1000)
+
+    trainedModel, history = trainAndShow(cleanData, epochs=500)
+
+    # 3. Final Success Message
+    mo.md("# **Training Complete!**")
     return
 
 
