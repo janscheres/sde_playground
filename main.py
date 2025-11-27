@@ -101,11 +101,12 @@ def _(plt, trajectory):
 
 @app.cell
 def _(mo, showFrame, timeSlider):
+
     mo.vstack([
-        mo.md("# SDE Time Evolution"),
-        mo.md("Drag the slider to watch the **Forward Diffusion Process** (Equation 1)."),
-        timeSlider,
-        showFrame(timeSlider.value)
+        mo.md("# SDE Playground"),
+        mo.md("## 1. The Physics (Forward Process)"),
+        mo.hstack([timeSlider, showFrame(timeSlider.value)], align="center"),
+        mo.md("---"),
     ])
     return
 
@@ -196,15 +197,22 @@ def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
 
 
 @app.cell
-def _(history, plt):
-    plt.figure(figsize=(8, 5))
-    plt.plot(history, label='Training Loss', color='darkblue')
-    plt.title('Final Training Loss Curve')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss (MSE)')
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.legend()
-    plt.show()
+def _(history, mo, plt):
+    def finalLossPlot():
+        fig, ax = plt.subplots(figsize=(6, 3))
+        ax.plot(history, color='darkblue')
+        ax.set_title("Model Training History")
+        ax.set_xlabel("Epochs"); ax.set_ylabel("Loss")
+        ax.grid(True, alpha=0.3)
+        return fig
+
+    mo.vstack([
+        mo.md("## 2. The Brain (Training)"),
+        mo.md("Below is the final loss curve, proving the AI learned the score function."),
+        finalLossPlot(),
+
+        mo.md("---"),
+    ])
     return
 
 
@@ -262,7 +270,12 @@ def _(mo, reverseSdeStep, torch, trainedModel):
 
 
 @app.cell
-def _(history, mo, plt, revTraj):
+def _():
+    return
+
+
+@app.cell
+def _(mo, plt, revTraj):
     revSlider = mo.ui.slider(start=0, stop=100, step=1, value=0, label="Reconstruction Step")
 
     def showReverseFrame(stepIndex):
@@ -275,34 +288,12 @@ def _(history, mo, plt, revTraj):
         ax.set_title(f"AI Reconstruction (Step {stepIndex})")
         ax.grid(True, linestyle='--', alpha=0.3)
         return fig
-
-
-    def finalLossPlot():
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.plot(history, color='darkblue')
-        ax.set_title("Model Training History")
-        ax.set_xlabel("Epochs"); ax.set_ylabel("Loss")
-        ax.grid(True, alpha=0.3)
-        return fig
-    return finalLossPlot, revSlider, showReverseFrame
+    return revSlider, showReverseFrame
 
 
 @app.cell
-def _(finalLossPlot, mo, revSlider, showFrame, showReverseFrame, timeSlider):
+def _(mo, revSlider, showReverseFrame):
     mo.vstack([
-        mo.md("# SDE Playground: The Final App"),
-
-        mo.md("## 1. The Physics (Forward Process)"),
-        mo.hstack([timeSlider, showFrame(timeSlider.value)], align="center"),
-
-        mo.md("---"),
-
-        mo.md("## 2. The Brain (Training)"),
-        mo.md("Below is the final loss curve, proving the AI learned the score function."),
-        finalLossPlot(),
-
-        mo.md("---"),
-
         mo.md("## 3. The Magic (Reverse Process)"),
         mo.md("Drag the slider to watch the AI turn **Pure Noise** back into a **Spiral**."),
         mo.hstack([revSlider, showReverseFrame(revSlider.value)], align="center")
