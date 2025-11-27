@@ -62,13 +62,13 @@ def _(mo, sdeStep, spiralData):
         beta = 1.0
         dt = 0.01
         steps = 100
-    
+
         history = [xPoints.numpy()]
-    
+
         for i in range(steps):
             xPoints = sdeStep(xPoints, beta, dt)
             history.append(xPoints.numpy())
-        
+
         return history
     return (generateTrajectory,)
 
@@ -79,7 +79,6 @@ def _(generateTrajectory, mo):
 
 
     timeSlider = mo.ui.slider(start=0, stop=100, step=1, value=0, label="Time Step ($t$)")
-
     return timeSlider, trajectory
 
 
@@ -134,9 +133,9 @@ def _(nn, torch):
             self.net = nn.Sequential(
                 nn.Linear(3, 64),
                 nn.Tanh(),
-                nn.Linear(64, 64),
+                nn.Linear(64, 128),
                 nn.Tanh(),
-                nn.Linear(64, 2) # Output: Estimated Noise Direction
+                nn.Linear(128, 2) # Output: Estimated Noise Direction
             )
 
         def forward(self, x, t):
@@ -155,8 +154,7 @@ def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
 
         lossHistory = []
 
-        # We use a progress bar for extra feedback
-        for epoch in mo.status.progress_bar(range(epochs), title="Training AI..."):
+        for epoch in range(epochs):
             epochLoss = 0
             for (xBatch,) in loader:
                 optimizer.zero_grad()
@@ -169,7 +167,7 @@ def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
                 loss.backward()
                 optimizer.step()
                 epochLoss += loss.item()
- 
+
             lossHistory.append(epochLoss / len(loader))
 
             # every 50 epochs update the loss graph
@@ -180,18 +178,86 @@ def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
                 ax.set_xlabel("Epochs")
                 ax.set_ylabel("Loss (MSE)")
                 ax.grid(True, alpha=0.3)
+                ax.set_xlim(0, epochs)
 
                 mo.output.replace(fig)
+
+                plt.close(fig)
 
         return model, lossHistory
 
 
     cleanData = spiralData(1000)
 
-    trainedModel, history = trainAndShow(cleanData, epochs=500)
+    trainedModel, history = trainAndShow(cleanData, epochs=1000)
 
-    # 3. Final Success Message
     mo.md("# **Training Complete!**")
+    return history, trainedModel
+
+
+@app.cell
+def _(history, plt):
+    plt.figure(figsize=(8, 5))
+    plt.plot(history, label='Training Loss', color='darkblue')
+    plt.title('Final Training Loss Curve')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss (MSE)')
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend()
+    plt.show()
+    return
+
+
+@app.cell
+def _(getMarginalParams, np, torch):
+    def reverseSdeStep(xCurr, model, beta, dt, t):
+        # get t to tell the nn what the current time is
+        tTensor = torch.full((xCurr.shape[0], 1), t)
+
+        # to scale output
+        _, sigmaT = getMarginalParams(tTensor)
+
+        with torch.no_grad():
+            # nn predicts the noise epsilon
+            # ccore = -epsilon / sigma
+            predNoise = model(xCurr, tTensor)
+            score = -predNoise / sigmaT
+
+        # calculate reverse drift -f(x) + g^2 * score, f(x) = -0.5*beta*x
+        reverseDrift = (0.5 * beta * xCurr) + (beta * score)
+
+        diffusion = np.sqrt(beta)
+        randomKick = torch.randn_like(xCurr)
+        dW = randomKick * np.sqrt(dt)
+
+        # 5. Update (Note: we add drift because we are simulating "time flowing backwards")
+        xNext = xCurr + (reverseDrift * dt) + (diffusion * dW)
+
+        return xNext
+    return (reverseSdeStep,)
+
+
+@app.cell
+def _(mo, reverseSdeStep, torch, trainedModel):
+    @mo.cache
+    def generateReverseTrajectory(trainedModel):
+        # start with random data, similar to t=1 the end
+        xPoints = torch.randn(800, 2)
+
+        beta = 1.0
+        steps = 100
+        dt = 0.01
+
+        history = [xPoints.numpy()]
+
+        for i in reversed(range(steps)):
+            tCurr = (i + 1) * dt
+            xPoints = reverseSdeStep(xPoints, trainedModel, beta, dt, tCurr)
+            history.append(xPoints.numpy())
+
+        return history
+
+    revTraj = generateReverseTrajectory(trainedModel)
     return
 
 
