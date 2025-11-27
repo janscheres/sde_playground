@@ -258,6 +258,55 @@ def _(mo, reverseSdeStep, torch, trainedModel):
         return history
 
     revTraj = generateReverseTrajectory(trainedModel)
+    return (revTraj,)
+
+
+@app.cell
+def _(history, mo, plt, revTraj):
+    revSlider = mo.ui.slider(start=0, stop=100, step=1, value=0, label="Reconstruction Step")
+
+    def showReverseFrame(stepIndex):
+        data = revTraj[stepIndex]
+
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.scatter(data[:, 0], data[:, 1], s=10, c='crimson', alpha=0.6, edgecolors='black', linewidth=0.1)
+
+        ax.set_xlim(-3.5, 3.5); ax.set_ylim(-3.5, 3.5)
+        ax.set_title(f"AI Reconstruction (Step {stepIndex})")
+        ax.grid(True, linestyle='--', alpha=0.3)
+        return fig
+
+
+    def finalLossPlot():
+        fig, ax = plt.subplots(figsize=(6, 3))
+        ax.plot(history, color='darkblue')
+        ax.set_title("Model Training History")
+        ax.set_xlabel("Epochs"); ax.set_ylabel("Loss")
+        ax.grid(True, alpha=0.3)
+        return fig
+    return finalLossPlot, revSlider, showReverseFrame
+
+
+@app.cell
+def _(finalLossPlot, mo, revSlider, showFrame, showReverseFrame, timeSlider):
+    mo.vstack([
+        mo.md("# SDE Playground: The Final App"),
+
+        mo.md("## 1. The Physics (Forward Process)"),
+        mo.hstack([timeSlider, showFrame(timeSlider.value)], align="center"),
+
+        mo.md("---"),
+
+        mo.md("## 2. The Brain (Training)"),
+        mo.md("Below is the final loss curve, proving the AI learned the score function."),
+        finalLossPlot(),
+
+        mo.md("---"),
+
+        mo.md("## 3. The Magic (Reverse Process)"),
+        mo.md("Drag the slider to watch the AI turn **Pure Noise** back into a **Spiral**."),
+        mo.hstack([revSlider, showReverseFrame(revSlider.value)], align="center")
+    ])
     return
 
 
