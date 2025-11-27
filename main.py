@@ -14,7 +14,7 @@ def _():
     import matplotlib.pyplot as plt
     import time
     import matplotlib.animation as animation
-    return mo, nn, np, optim, plt, torch
+    return animation, mo, nn, np, optim, plt, torch
 
 
 @app.cell
@@ -129,7 +129,6 @@ app._unparsable_cell(
 
 @app.cell
 def _(mo, showFrame, timeSlider):
-
     mo.vstack([
         mo.md("# SDE Playground"),
         mo.md("## 1. The Physics (Forward Process)"),
@@ -320,11 +319,41 @@ def _(mo, plt, revTraj):
 
 
 @app.cell
+def _(animation, plt, revTraj):
+    def unmeltingVid(revTrajectory):
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.set_xlim(-3.5, 3.5); ax.set_ylim(-3.5, 3.5)
+        ax.grid(True, linestyle='--', alpha=0.3)
+        ax.set_title("Phase 3: Unmelting (Reverse SDE)", fontsize=10)
+
+        scat = ax.scatter([], [], s=10, c='crimson', alpha=0.6, edgecolors='black', linewidth=0.1)
+
+        def update(frame):
+            if frame >= len(revTrajectory): frame = len(revTrajectory) - 1
+
+            data = revTrajectory[frame]
+            scat.set_offsets(data)
+            return (scat,)
+
+        ani = animation.FuncAnimation(fig, update, frames=len(revTrajectory), blit=True)
+
+        ani.save("reverse.mp4", writer="ffmpeg", fps=15, dpi=100)
+
+        plt.close(fig)
+
+    unmeltingVid(revTraj)
+    return
+
+
+@app.cell
 def _(mo, revSlider, showReverseFrame):
     mo.vstack([
         mo.md("## 3. The Magic (Reverse Process)"),
         mo.md("Drag the slider to watch the AI turn **Pure Noise** back into a **Spiral**."),
-        mo.hstack([revSlider, showReverseFrame(revSlider.value)], align="center")
+        mo.hstack([
+            mo.vstack([revSlider, showReverseFrame(revSlider.value)], align="center"), 
+            mo.video("reverse.mp4", autoplay=True, loop=True)
+        ], align="center")
     ])
     return
 
