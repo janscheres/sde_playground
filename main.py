@@ -99,13 +99,41 @@ def _(plt, trajectory):
     return (showFrame,)
 
 
+app._unparsable_cell(
+    r"""
+    def meltingVid(trajectory):
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.set_xlim(-3.5, 3.5); ax.set_ylim(-3.5, 3.5)
+        ax.grid(True, linestyle='--', alpha=0.3)
+        ax.set_title(\"Phase 1: Melting (Forward SDE)\", fontsize=10)
+
+        scat = ax.scatter([], [], s=10, c='dodgerblue', alpha=0.6, edgecolors='black', linewidth=0.1
+        def update(frame):
+            if frame >= len(trajectory): frame = len(trajectory) - 1
+
+            data = trajectory[frame]
+            scat.set_offsets(data)
+            return (scat,)
+
+        ani = animation.FuncAnimation(fig, update, frames=len(trajectory), blit=True)
+
+        ani.save(\"forward.mp4\", writer=\"ffmpeg\", fps=15, dpi=100)
+
+        plt.close(fig)
+
+    meltingVid(trajectory)
+    """,
+    name="_"
+)
+
+
 @app.cell
 def _(mo, showFrame, timeSlider):
 
     mo.vstack([
         mo.md("# SDE Playground"),
         mo.md("## 1. The Physics (Forward Process)"),
-        mo.hstack([timeSlider, showFrame(timeSlider.value)], align="center"),
+        mo.hstack([mo.vstack([timeSlider, showFrame(timeSlider.value)], align="center"), mo.video("forward.mp4",autoplay=True,loop=True)], align="center"),
         mo.md("---"),
     ])
     return
