@@ -216,7 +216,10 @@ def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
                 ax.grid(True, alpha=0.3)
                 ax.set_xlim(0, epochs)
 
-                mo.output.replace(fig)
+                mo.output.replace(mo.vstack([
+                    fig,
+                    mo.md("Epoch "+ str(epoch)+ " out of "+str(epochs))
+                ], align="center"))
 
                 plt.close(fig)
 
