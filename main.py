@@ -106,7 +106,6 @@ def _(mo, showFrame, timeSlider):
         mo.md("## 1. The Physics (Forward Process)"),
         timeSlider,
         showFrame(timeSlider.value),
-        mo.md("---"),
     ], align="center")
     return
 
@@ -141,7 +140,6 @@ def _(animation, plt, trajectory):
 def _(mo):
     mo.vstack([
         mo.video("forward.mp4", width=400),
-        mo.md("---"),
     ], align="center")
     return
 
@@ -235,7 +233,7 @@ def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
 
 
 @app.cell
-def _(history, mo, plt):
+def _(history, plt):
     def finalLossPlot():
         fig, ax = plt.subplots(figsize=(6, 3))
         ax.plot(history, color='darkblue')
@@ -243,13 +241,15 @@ def _(history, mo, plt):
         ax.set_xlabel("Epochs"); ax.set_ylabel("Loss")
         ax.grid(True, alpha=0.3)
         return fig
+    return (finalLossPlot,)
 
+
+@app.cell
+def _(finalLossPlot, mo):
     mo.vstack([
         mo.md("## 2. The Brain (Training)"),
         mo.md("Below is the final loss curve, proving the AI learned the score function."),
         finalLossPlot(),
-
-        mo.md("---"),
     ], align="center")
     return
 
@@ -265,7 +265,7 @@ def _(getMarginalParams, np, torch):
 
         with torch.no_grad():
             # nn predicts the noise epsilon
-            # ccore = -epsilon / sigma
+            # score = -epsilon / sigma
             predNoise = model(xCurr, tTensor)
             score = -predNoise / sigmaT
 
@@ -276,8 +276,7 @@ def _(getMarginalParams, np, torch):
         randomKick = torch.randn_like(xCurr)
         dW = randomKick * np.sqrt(dt)
 
-        # 5. Update (Note: we add drift because we are simulating "time flowing backwards")
-        xNext = xCurr + (reverseDrift * dt) + (diffusion * dW)
+        xNext = xCurr + (reverseDrift * dt) + (diffusion * dW)# use our learned drift to reverse timestep
 
         return xNext
     return (reverseSdeStep,)
@@ -287,8 +286,7 @@ def _(getMarginalParams, np, torch):
 def _(mo, reverseSdeStep, torch, trainedModel):
     @mo.cache
     def generateReverseTrajectory(trainedModel):
-        # start with random data, similar to t=1 the end
-        xPoints = torch.randn(800, 2)
+        xPoints = torch.randn(800, 2)# start with random data, similar to t=1 the end of many sde forward steps
 
         beta = 1.0
         steps = 100
@@ -308,30 +306,85 @@ def _(mo, reverseSdeStep, torch, trainedModel):
 
 
 @app.cell
-def _(mo, plt, revTraj):
-    revSlider = mo.ui.slider(start=0, stop=100, step=1, value=0, label="Reconstruction Step")
+def _(getMarginalParams, np, plt, torch):
+    def plot_interactive_explorer(model, trajectory_data, step_index, show_points, show_vectors):
+        t_val = max(0.01, 1.0 - (step_index / 100.0))#convert step into time for ai, step 0 is time1, step100 is time0
+    
+        fig, ax = plt.subplots(figsize=(6, 6))
+    
+        if show_vectors:
+            x = np.linspace(-3.5, 3.5, 20)
+            y = np.linspace(-3.5, 3.5, 20)
+            gridX, gridY = np.meshgrid(x, y)#make a 20x20 grid for the arrow bases
+            gridPoints = torch.tensor(np.stack([gridX, gridY], axis=-1)).float().reshape(-1, 2)#flatted to feed into nn
 
-    def showReverseFrame(stepIndex):
-        data = revTraj[stepIndex]
+            tTensor = torch.full((len(gridPoints), 1), t_val)
+            with torch.no_grad():
+                _, sigmaT = getMarginalParams(tTensor)
+                predNoise = model(gridPoints, tTensor)
+                score = -predNoise / (sigmaT + 1e-5)
 
-        fig, ax = plt.subplots(figsize=(5, 5))
-        ax.scatter(data[:, 0], data[:, 1], s=10, c='crimson', alpha=0.6, edgecolors='black', linewidth=0.1)
+            vectors = score.numpy()
+            ax.quiver(gridPoints[:,0], gridPoints[:,1], vectors[:,0], vectors[:,1], 
+                      color='teal', alpha=0.6, scale=100, headwidth=4, label='Learned Drift')
 
+        if show_points:
+            idx = step_index
+            if idx >= len(trajectory_data): idx = len(trajectory_data) - 1
+
+            data_np = trajectory_data[idx]
+
+            ax.scatter(data_np[:, 0], data_np[:, 1], s=10, c='crimson', alpha=0.5, label='AI Particles')
+
+        ax.set_title(f"Reconstruction Step: {step_index} (t={t_val:.2f})")
         ax.set_xlim(-3.5, 3.5); ax.set_ylim(-3.5, 3.5)
-        ax.set_title(f"AI Reconstruction (Step {stepIndex})")
-        ax.grid(True, linestyle='--', alpha=0.3)
+        ax.grid(True, linestyle='--', alpha=0.2)
+        if show_points or show_vectors: ax.legend(loc='upper right')
+    
         return fig
-    return revSlider, showReverseFrame
+    return (plot_interactive_explorer,)
 
 
 @app.cell
-def _(mo, revSlider, showReverseFrame):
+def _(mo):
+    dispVecs = mo.ui.checkbox(value=True, label="Display Learned Vector Field")
+    dispPoints = mo.ui.checkbox(value=True, label="Display Sample Data")
+
+    reconstructSlider = mo.ui.slider(start=0, stop=100, step=1, value=95, label="Reconstruction Step")
+    return dispPoints, dispVecs, reconstructSlider
+
+
+@app.cell
+def _(
+    dispPoints,
+    dispVecs,
+    mo,
+    plot_interactive_explorer,
+    reconstructSlider,
+    revTraj,
+    trainedModel,
+):
     mo.vstack([
-        mo.md("## 3. The Magic (Reverse Process)"),
-        mo.md("Drag the slider to watch the AI turn **Pure Noise** back into a **Spiral**."),
-        revSlider,
-        showReverseFrame(revSlider.value),
-    ], align="center")
+        mo.md("## 2. The Brain: Vector Field Explorer"),
+        mo.md("Investigate what the AI has learned. Drag the slider to see how the **Vector Field** (Blue Arrows) guides the **Data** (Red Dots) back to the spiral."),
+
+        mo.hstack([
+            mo.vstack([
+                mo.md("### View Options"),
+                dispVecs,
+                dispPoints,
+                reconstructSlider,
+            ], align="center"),
+
+            plot_interactive_explorer(
+                trainedModel,
+                revTraj,
+                reconstructSlider.value, 
+                dispPoints.value, 
+                dispVecs.value
+            )
+        ], align="center", gap=2)
+    ])
     return
 
 
