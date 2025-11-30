@@ -99,15 +99,26 @@ def _(plt, trajectory):
     return (showFrame,)
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def _(mo, showFrame, timeSlider):
+    mo.vstack([
+        mo.md("# SDE Playground"),
+        mo.md("## 1. The Physics (Forward Process)"),
+        mo.vstack([timeSlider, showFrame(timeSlider.value)], align="center"),
+        mo.md("---"),
+    ])
+    return
+
+
+@app.cell
+def _(animation, plt, trajectory):
     def meltingVid(trajectory):
         fig, ax = plt.subplots(figsize=(5, 5))
         ax.set_xlim(-3.5, 3.5); ax.set_ylim(-3.5, 3.5)
         ax.grid(True, linestyle='--', alpha=0.3)
-        ax.set_title(\"Phase 1: Melting (Forward SDE)\", fontsize=10)
+        ax.set_title("Phase 1: Melting (Forward SDE)", fontsize=10)
 
-        scat = ax.scatter([], [], s=10, c='dodgerblue', alpha=0.6, edgecolors='black', linewidth=0.1
+        scat = ax.scatter([], [], s=10, c='dodgerblue', alpha=0.6, edgecolors='black', linewidth=0.1)
         def update(frame):
             if frame >= len(trajectory): frame = len(trajectory) - 1
 
@@ -117,22 +128,18 @@ app._unparsable_cell(
 
         ani = animation.FuncAnimation(fig, update, frames=len(trajectory), blit=True)
 
-        ani.save(\"forward.mp4\", writer=\"ffmpeg\", fps=15, dpi=100)
+        ani.save("forward.mp4", writer="ffmpeg", fps=15, dpi=100)
 
         plt.close(fig)
 
     meltingVid(trajectory)
-    """,
-    name="_"
-)
+    return
 
 
 @app.cell
-def _(mo, showFrame, timeSlider):
+def _(mo):
     mo.vstack([
-        mo.md("# SDE Playground"),
-        mo.md("## 1. The Physics (Forward Process)"),
-        mo.hstack([mo.vstack([timeSlider, showFrame(timeSlider.value)], align="center"), mo.video("forward.mp4",autoplay=True,loop=True)], align="center"),
+        mo.video("forward.mp4", width=400),
         mo.md("---"),
     ])
     return
@@ -319,6 +326,16 @@ def _(mo, plt, revTraj):
 
 
 @app.cell
+def _(mo, revSlider, showReverseFrame):
+    mo.vstack([
+        mo.md("## 3. The Magic (Reverse Process)"),
+        mo.md("Drag the slider to watch the AI turn **Pure Noise** back into a **Spiral**."),
+        mo.vstack([revSlider, showReverseFrame(revSlider.value)], align="center"),
+    ])
+    return
+
+
+@app.cell
 def _(animation, plt, revTraj):
     def unmeltingVid(revTrajectory):
         fig, ax = plt.subplots(figsize=(5, 5))
@@ -346,14 +363,9 @@ def _(animation, plt, revTraj):
 
 
 @app.cell
-def _(mo, revSlider, showReverseFrame):
+def _(mo):
     mo.vstack([
-        mo.md("## 3. The Magic (Reverse Process)"),
-        mo.md("Drag the slider to watch the AI turn **Pure Noise** back into a **Spiral**."),
-        mo.hstack([
-            mo.vstack([revSlider, showReverseFrame(revSlider.value)], align="center"), 
-            mo.video("reverse.mp4", autoplay=True, loop=True)
-        ], align="center")
+        mo.video("reverse.mp4", width=400),
     ])
     return
 
