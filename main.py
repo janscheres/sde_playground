@@ -104,9 +104,10 @@ def _(mo, showFrame, timeSlider):
     mo.vstack([
         mo.md("# SDE Playground"),
         mo.md("## 1. The Physics (Forward Process)"),
-        mo.vstack([timeSlider, showFrame(timeSlider.value)], align="center"),
+        timeSlider,
+        showFrame(timeSlider.value),
         mo.md("---"),
-    ])
+    ], align="center")
     return
 
 
@@ -141,7 +142,7 @@ def _(mo):
     mo.vstack([
         mo.video("forward.mp4", width=400),
         mo.md("---"),
-    ])
+    ], align="center")
     return
 
 
@@ -246,7 +247,7 @@ def _(history, mo, plt):
         finalLossPlot(),
 
         mo.md("---"),
-    ])
+    ], align="center")
     return
 
 
@@ -304,11 +305,6 @@ def _(mo, reverseSdeStep, torch, trainedModel):
 
 
 @app.cell
-def _():
-    return
-
-
-@app.cell
 def _(mo, plt, revTraj):
     revSlider = mo.ui.slider(start=0, stop=100, step=1, value=0, label="Reconstruction Step")
 
@@ -330,8 +326,9 @@ def _(mo, revSlider, showReverseFrame):
     mo.vstack([
         mo.md("## 3. The Magic (Reverse Process)"),
         mo.md("Drag the slider to watch the AI turn **Pure Noise** back into a **Spiral**."),
-        mo.vstack([revSlider, showReverseFrame(revSlider.value)], align="center"),
-    ])
+        revSlider,
+        showReverseFrame(revSlider.value),
+    ], align="center")
     return
 
 
@@ -366,7 +363,7 @@ def _(animation, plt, revTraj):
 def _(mo):
     mo.vstack([
         mo.video("reverse.mp4", width=400),
-    ])
+    ], align="center")
     return
 
 
