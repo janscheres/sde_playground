@@ -423,8 +423,8 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def _(getMarginalParams, np, plt, spiralData, torch, trainedModel, trajectory):
     def exportFigs():
         times = [0, 5, 50, 100]
 
@@ -434,7 +434,7 @@ app._unparsable_cell(
             data = trajectory[times[i]]
             ax.scatter(data[:, 0], data[:, 1], s=5, c='dodgerblue', alpha=0.6)
 
-            ax.set_title(f\"t = {times[i]/100}\")
+            ax.set_title(f"t = {times[i]/100}")
             ax.set_xlim(-3.5, 3.5)
             ax.set_ylim(-3.5, 3.5)
             ax.set_xticks([])
@@ -442,7 +442,7 @@ app._unparsable_cell(
             ax.set_aspect('equal')
 
         plt.tight_layout()
-        plt.savefig(\"melting.png\", dpi=300, bbox_inches='tight')
+        plt.savefig("melting.png", dpi=300, bbox_inches='tight')
         plt.close(fig1)
 
 
@@ -466,18 +466,16 @@ app._unparsable_cell(
         spiralExample = spiralData(500).numpy()
         ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.15)
 
-        ax.set_title(\"Learned Vector Field $\nabla_{\mathbf{x}} \log p(\mathbf{x}(t))$\")
+        ax.set_title("Learned Vector Field $\nabla_{\mathbf{x}} \log p(\mathbf{x}(t))$")
         ax.set_xlim(-3.5, 3.5)
         ax.set_ylim(-3.5, 3.5)
         ax.grid(True, linestyle='--', alpha=0.3)
 
-        plt.savefig(\"vecfield.png\", dpi=300, bbox_inches='tight')
-        plt.close(fig2)cd
+        plt.savefig("vecfield.png", dpi=300, bbox_inches='tight')
+        plt.close(fig2)
 
     exportFigs()
-    """,
-    name="_"
-)
+    return
 
 
 if __name__ == "__main__":
