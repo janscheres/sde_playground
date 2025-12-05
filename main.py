@@ -454,35 +454,41 @@ def _(
         plt.close(fig1)
 
 
-        fig2, ax = plt.subplots(figsize=(6, 6))
+        indices_rev = [0, 50, 95, 100]
 
+        fig2, axes = plt.subplots(1, 4, figsize=(16, 4), constrained_layout=True)
         x = np.linspace(-3.5, 3.5, 20)
         y = np.linspace(-3.5, 3.5, 20)
         gridX, gridY = np.meshgrid(x, y)
         gridPoints = torch.tensor(np.stack([gridX, gridY], axis=-1)).float().reshape(-1, 2)
-
-        tTensor = torch.full((len(gridPoints), 1), 0.1)#t=0.1 equal to reconstruction step 90
-
-        with torch.no_grad():
-            _, sigmaT = getMarginalParams(tTensor)
-            predNoise = trainedModel(gridPoints, tTensor)
-            score = -predNoise / (sigmaT + 1e-5)
-
-        vectors = score.numpy()
-        ax.quiver(gridPoints[:,0], gridPoints[:,1], vectors[:,0], vectors[:,1], color='teal', alpha=0.8, scale=100, headwidth=4, width=0.005)
-
         spiralExample = spiralData(500).numpy()
-        ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.15)
 
-        ax.set_title("Learned Vector Field (Reconstruction Step 90)", fontsize=20)
-        ax.set_xlim(-3.5, 3.5)
-        ax.set_ylim(-3.5, 3.5)
-        ax.grid(True, linestyle='--', alpha=0.3)
+        for i, ax in enumerate(axes):
+            idx = indices_rev[i]
+            t_val = max(0.01, 1.0 - (idx / 100.0))
+            tTensor = torch.full((len(gridPoints), 1), t_val)
+
+            with torch.no_grad():
+                _, sigmaT = getMarginalParams(tTensor)
+                predNoise = trainedModel(gridPoints, tTensor)
+                score = -predNoise / (sigmaT + 1e-5)
+
+            vectors = score.numpy()
+
+            ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.1)
+            ax.quiver(gridPoints[:,0], gridPoints[:,1], vectors[:,0], vectors[:,1], color='teal', alpha=0.8, scale=100, headwidth=4, width=0.005)
+
+            ax.set_title(f"Step {idx} ($t={t_val:.2f}$)", fontsize=18)
+            ax.set_xlim(-3.5, 3.5)
+            ax.set_ylim(-3.5, 3.5)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.grid(True, linestyle='--', alpha=0.3)
+            ax.set_aspect('equal')
 
         plt.savefig("vecfield.png", dpi=300, bbox_inches='tight')
         plt.close(fig2)
 
-        indices_rev = [0, 50, 95, 100]
 
         fig3, axes = plt.subplots(1, 4, figsize=(16, 4), constrained_layout=True)
 
