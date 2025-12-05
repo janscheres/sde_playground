@@ -437,20 +437,19 @@ def _(
     def exportFigs():
         times = [0, 5, 50, 100]
 
-        fig1, axes = plt.subplots(1, 4, figsize=(16, 4))
+        fig1, axes = plt.subplots(1, 4, figsize=(16, 4), constrained_layout=True)
 
         for i, ax in enumerate(axes):
             data = trajectory[times[i]]
             ax.scatter(data[:, 0], data[:, 1], s=5, c='dodgerblue', alpha=0.6)
 
-            ax.set_title(f"Step: ${times[i]}$", fontsize=28)
+            ax.set_title(f"Step: ${times[i]}$", fontsize=20)
             ax.set_xlim(-3.5, 3.5)
             ax.set_ylim(-3.5, 3.5)
             ax.set_xticks([])
             ax.set_yticks([])
             ax.set_aspect('equal')
 
-        plt.tight_layout()
         plt.savefig("melting.png", dpi=300, bbox_inches='tight')
         plt.close(fig1)
 
@@ -475,7 +474,7 @@ def _(
         spiralExample = spiralData(500).numpy()
         ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.15)
 
-        ax.set_title("Learned Vector Field (Reconstruction Step 90)", fontsize=28)
+        ax.set_title("Learned Vector Field (Reconstruction Step 90)", fontsize=20)
         ax.set_xlim(-3.5, 3.5)
         ax.set_ylim(-3.5, 3.5)
         ax.grid(True, linestyle='--', alpha=0.3)
@@ -485,7 +484,7 @@ def _(
 
         indices_rev = [0, 50, 95, 100]
 
-        fig3, axes = plt.subplots(1, 4, figsize=(16, 4))
+        fig3, axes = plt.subplots(1, 4, figsize=(16, 4), constrained_layout=True)
 
         for i, ax in enumerate(axes):
             idx = indices_rev[i]
@@ -493,14 +492,13 @@ def _(
             data = revTraj[idx]
             ax.scatter(data[:, 0], data[:, 1], s=5, c='crimson', alpha=0.6)
 
-            ax.set_title(f"Reconstruction Step {idx}", fontsize=28)
+            ax.set_title(f"Reconstruction Step {idx}", fontsize=20)
             ax.set_xlim(-3.5, 3.5)
             ax.set_ylim(-3.5, 3.5)
             ax.set_xticks([])
             ax.set_yticks([])
             ax.set_aspect('equal')
 
-        plt.tight_layout()
         plt.savefig("unmelting.png", dpi=300, bbox_inches='tight')
         plt.close(fig3)
 
