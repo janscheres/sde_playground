@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.18.0"
+__generated_with = "0.18.1"
 app = marimo.App(width="medium")
 
 
@@ -139,7 +139,7 @@ def _(animation, plt, trajectory):
 @app.cell
 def _(mo):
     mo.vstack([
-        mo.video("forward.mp4", width=400),
+        mo.video("forward.mp4", width=600),
     ], align="center")
     return
 
@@ -226,7 +226,7 @@ def _(ScoreNet, getMarginalParams, mo, optim, plt, spiralData, torch):
 
     cleanData = spiralData(1000)
 
-    trainedModel, history = trainAndShow(cleanData, epochs=1000)
+    trainedModel, history = trainAndShow(cleanData, epochs=500)
 
     mo.md("# **Training Complete!**")
     return history, trainedModel
@@ -267,7 +267,7 @@ def _(getMarginalParams, np, torch):
             # nn predicts the noise epsilon
             # score = -epsilon / sigma
             predNoise = model(xCurr, tTensor)
-            score = -predNoise / sigmaT
+            score = -predNoise /(sigmaT + 1e-5)
 
         # calculate reverse drift -f(x) + g^2 * score, f(x) = -0.5*beta*x
         reverseDrift = (0.5 * beta * xCurr) + (beta * score)
@@ -309,9 +309,9 @@ def _(mo, reverseSdeStep, torch, trainedModel):
 def _(getMarginalParams, np, plt, torch):
     def plot_interactive_explorer(model, trajectory_data, step_index, show_points, show_vectors):
         t_val = max(0.01, 1.0 - (step_index / 100.0))#convert step into time for ai, step 0 is time1, step100 is time0
-    
+
         fig, ax = plt.subplots(figsize=(6, 6))
-    
+
         if show_vectors:
             x = np.linspace(-3.5, 3.5, 20)
             y = np.linspace(-3.5, 3.5, 20)
@@ -340,7 +340,7 @@ def _(getMarginalParams, np, plt, torch):
         ax.set_xlim(-3.5, 3.5); ax.set_ylim(-3.5, 3.5)
         ax.grid(True, linestyle='--', alpha=0.2)
         if show_points or show_vectors: ax.legend(loc='upper right')
-    
+
         return fig
     return (plot_interactive_explorer,)
 
@@ -418,9 +418,66 @@ def _(animation, plt, revTraj):
 @app.cell
 def _(mo):
     mo.vstack([
-        mo.video("reverse.mp4", width=400),
+        mo.video("reverse.mp4", width=600),
     ], align="center")
     return
+
+
+app._unparsable_cell(
+    r"""
+    def exportFigs():
+        times = [0, 5, 50, 100]
+
+        fig1, axes = plt.subplots(1, 4, figsize=(16, 4))
+
+        for i, ax in enumerate(axes):
+            data = trajectory[times[i]]
+            ax.scatter(data[:, 0], data[:, 1], s=5, c='dodgerblue', alpha=0.6)
+
+            ax.set_title(f\"t = {times[i]/100}\")
+            ax.set_xlim(-3.5, 3.5)
+            ax.set_ylim(-3.5, 3.5)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_aspect('equal')
+
+        plt.tight_layout()
+        plt.savefig(\"melting.png\", dpi=300, bbox_inches='tight')
+        plt.close(fig1)
+
+
+        fig2, ax = plt.subplots(figsize=(6, 6))
+
+        x = np.linspace(-3.5, 3.5, 20)
+        y = np.linspace(-3.5, 3.5, 20)
+        gridX, gridY = np.meshgrid(x, y)
+        gridPoints = torch.tensor(np.stack([gridX, gridY], axis=-1)).float().reshape(-1, 2)
+
+        tTensor = torch.full((len(gridPoints), 1), 0.1)#will save the score at t=0.1 here
+
+        with torch.no_grad():
+            _, sigmaT = getMarginalParams(tTensor)
+            predNoise = trainedModel(gridPoints, tTensor)
+            score = -predNoise / (sigmaT + 1e-5)
+
+        vectors = score.numpy()
+        ax.quiver(gridPoints[:,0], gridPoints[:,1], vectors[:,0], vectors[:,1], color='teal', alpha=0.8, scale=100, headwidth=4, width=0.005)
+
+        spiralExample = spiralData(500).numpy()
+        ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.15)
+
+        ax.set_title(\"Learned Vector Field $\nabla_{\mathbf{x}} \log p(\mathbf{x}(t))$\")
+        ax.set_xlim(-3.5, 3.5)
+        ax.set_ylim(-3.5, 3.5)
+        ax.grid(True, linestyle='--', alpha=0.3)
+
+        plt.savefig(\"vecfield.png\", dpi=300, bbox_inches='tight')
+        plt.close(fig2)cd
+
+    exportFigs()
+    """,
+    name="_"
+)
 
 
 if __name__ == "__main__":
