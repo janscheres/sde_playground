@@ -424,7 +424,16 @@ def _(mo):
 
 
 @app.cell
-def _(getMarginalParams, np, plt, spiralData, torch, trainedModel, trajectory):
+def _(
+    getMarginalParams,
+    np,
+    plt,
+    revTraj,
+    spiralData,
+    torch,
+    trainedModel,
+    trajectory,
+):
     def exportFigs():
         times = [0, 5, 50, 100]
 
@@ -434,7 +443,7 @@ def _(getMarginalParams, np, plt, spiralData, torch, trainedModel, trajectory):
             data = trajectory[times[i]]
             ax.scatter(data[:, 0], data[:, 1], s=5, c='dodgerblue', alpha=0.6)
 
-            ax.set_title(f"t = {times[i]/100}")
+            ax.set_title(f"Step: ${times[i]}$", fontsize=28)
             ax.set_xlim(-3.5, 3.5)
             ax.set_ylim(-3.5, 3.5)
             ax.set_xticks([])
@@ -466,13 +475,34 @@ def _(getMarginalParams, np, plt, spiralData, torch, trainedModel, trajectory):
         spiralExample = spiralData(500).numpy()
         ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.15)
 
-        ax.set_title("Learned Vector Field $\nabla_{\mathbf{x}} \log p(\mathbf{x}(t))$")
+        ax.set_title("Learned Vector Field $\\nabla_{\mathbf{x}} \log p_t(\mathbf{x})$ at $t=0.1$", fontsize=28)
         ax.set_xlim(-3.5, 3.5)
         ax.set_ylim(-3.5, 3.5)
         ax.grid(True, linestyle='--', alpha=0.3)
 
         plt.savefig("vecfield.png", dpi=300, bbox_inches='tight')
         plt.close(fig2)
+
+        indices_rev = [0, 50, 95, 100]
+
+        fig3, axes = plt.subplots(1, 4, figsize=(16, 4))
+
+        for i, ax in enumerate(axes):
+            idx = indices_rev[i]
+
+            data = revTraj[idx]
+            ax.scatter(data[:, 0], data[:, 1], s=5, c='crimson', alpha=0.6)
+
+            ax.set_title(f"Reconstruction Step {idx}", fontsize=28)
+            ax.set_xlim(-3.5, 3.5)
+            ax.set_ylim(-3.5, 3.5)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_aspect('equal')
+
+        plt.tight_layout()
+        plt.savefig("unmelting.png", dpi=300, bbox_inches='tight')
+        plt.close(fig3)
 
     exportFigs()
     return
