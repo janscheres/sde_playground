@@ -462,7 +462,7 @@ def _(
         gridX, gridY = np.meshgrid(x, y)
         gridPoints = torch.tensor(np.stack([gridX, gridY], axis=-1)).float().reshape(-1, 2)
 
-        tTensor = torch.full((len(gridPoints), 1), 0.1)#will save the score at t=0.1 here
+        tTensor = torch.full((len(gridPoints), 1), 0.1)#t=0.1 equal to reconstruction step 90
 
         with torch.no_grad():
             _, sigmaT = getMarginalParams(tTensor)
@@ -475,7 +475,7 @@ def _(
         spiralExample = spiralData(500).numpy()
         ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.15)
 
-        ax.set_title("Learned Vector Field $\\nabla_{\mathbf{x}} \log p_t(\mathbf{x})$ at $t=0.1$", fontsize=28)
+        ax.set_title("Learned Vector Field (Reconstruction Step 90)", fontsize=28)
         ax.set_xlim(-3.5, 3.5)
         ax.set_ylim(-3.5, 3.5)
         ax.grid(True, linestyle='--', alpha=0.3)
