@@ -443,7 +443,7 @@ def _(
             data = trajectory[times[i]]
             ax.scatter(data[:, 0], data[:, 1], s=5, c='dodgerblue', alpha=0.6)
 
-            ax.set_title(f"Step: ${times[i]}$", fontsize=20)
+            ax.set_title(f"Diffusion Step ${times[i]}$", fontsize=20)
             ax.set_xlim(-3.5, 3.5)
             ax.set_ylim(-3.5, 3.5)
             ax.set_xticks([])
@@ -478,7 +478,7 @@ def _(
             ax.scatter(spiralExample[:, 0], spiralExample[:, 1], s=5, c='black', alpha=0.1)
             ax.quiver(gridPoints[:,0], gridPoints[:,1], vectors[:,0], vectors[:,1], color='teal', alpha=0.8, scale=100, headwidth=4, width=0.005)
 
-            ax.set_title(f"Step {idx} ($t={t_val:.2f}$)", fontsize=18)
+            ax.set_title(f"Reconstruction Step {idx}", fontsize=18)
             ax.set_xlim(-3.5, 3.5)
             ax.set_ylim(-3.5, 3.5)
             ax.set_xticks([])
