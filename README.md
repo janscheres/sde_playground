@@ -2,12 +2,9 @@
 For Computational Mathematics uni module
 
 ## Setup
-Firstly, install the `uv` python package manager on your system, from there:
+Firstly, install the `uv` python package manager on your system, it should handle everything packagewise by itself from there!
 
-`uv init`
-
-`uv add marimo`
+[Installation Guide](https://docs.astral.sh/uv/#installation)
 
 ## Running
-`uv run marimo edit`
-
+`uv run marimo edit main.py`
